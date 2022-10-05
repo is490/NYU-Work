@@ -1,0 +1,104 @@
+---
+title: 'Machine Learning: EDA'
+author: "Isha Shrivastava, is2534"
+date: "2/28/2022"
+output: pdf_document
+---
+```{r}
+suppressMessages(library(readr))
+suppressMessages(Air_Traffic_Passenger_Statistics <- read_csv("Air_Traffic_Passenger_Statistics.csv"))
+airdata <- Air_Traffic_Passenger_Statistics
+##Data Summary, Data Cleaning
+summary(airdata$`Passenger Count`)
+nrow(airdata)
+ncol(airdata)
+suppressMessages(library(Hmisc))
+head(describe(airdata))
+##Renaming Columns
+names(airdata) <- c("Date", "AirlineName", "AirlineName_Code", "Airline", 
+                    "AirlineCode", "DomOrInt", "Region", "Type", "Price", 
+                    "Terminal", "BordingArea","PassengerCount", "AdjustedType", 
+                    "Adjusted_Count", "Year","Month")
+suppressMessages(library(dplyr))
+##Dropping redundant columns
+airdata <- select(airdata, -c(Date, AirlineName, AirlineName_Code))
+##Recoding DomOrInt to Boolean where Dom = T, Int = F
+airdata$DomOrInt = recode(airdata$DomOrInt, "Domestic" = T, "International" = F)
+##Filtering out 2005 data for easier visualization
+airdata = filter(airdata, Year != 2005)
+#Recoding United Airlines - Pre 07/01/2013 to United Airlines
+airdata$Airline <- recode(airdata$Airline, "United Airlines - Pre 07/01/2013" 
+                          = "United Airlines")
+#Recoding "Emirates " to "Emirates"
+airdata$Airline <- recode(airdata$Airline, "Emirates " = "Emirates")
+```
+
+Data Visualisation
+```{r}
+##Average Passenger Traffic between 2006 and 2017
+suppressMessages(library(ggplot2))
+suppressMessages(library(dplyr))
+suppressMessages(library(tidyr))
+suppressMessages(library(scales))
+##Set a global default on theme and legend on the ggplots
+format_title <- theme(plot.title = element_text(hjust = 0.5, size = 16, 
+                                                face = "bold"))
+format_legend_title <- theme(legend.title = element_text(face = "bold"))
+##Stacked Bar Graph
+airdata %>%
+  group_by(DomOrInt, Month) %>%
+  summarise(avg_pax = round(mean(PassengerCount), digit = 0)) %>%
+ ggplot(aes(fill=DomOrInt, y=avg_pax, x=factor(Month, labels = month.abb))) + 
+  geom_bar(position='stack', stat='identity')  + 
+  scale_fill_manual(name = "Destination", label = c("International","Domestic"), 
+                    values = c("#9E9AC8", "#6A51A3"))+
+  labs(x='Month', y='Passengers') +
+  ggtitle("Monthly Average Passengers Count") +
+  format_title + format_legend_title
+```
+
+
+```{r}
+##Annual Count of Passengers in  Air China, Air New Zealand, Emirates, 
+##United Airlines, Virgin America
+intl_lcc_plot <- airdata %>%
+  filter(!DomOrInt & 
+           Price=="Low Fare" &
+           Airline != "ATA Airlines" &
+           Airline != "Servisair" &
+           Airline != "Sun Country Airlines") %>% 
+  group_by(Year,Airline) %>% 
+  summarise(sumpax = sum(PassengerCount)) %>% 
+  arrange(desc(sumpax))
+##Stacked Bar
+intl_lcc_plot %>% ggplot(aes(x = Year, y = sumpax, fill = Airline)) +
+  scale_fill_brewer(name = "Airline", palette = "Spectral") +
+  geom_bar(stat = "identity") + 
+  scale_x_continuous(name = "Year",
+                     breaks = seq(min(airdata$Year), max(airdata$Year), by = 1)) +
+  scale_y_continuous(name = "Passengers", breaks = seq(0, 500000, by = 50000), 
+                     labels = comma) +
+  ggtitle("Annual Passengers Count on International Carrier")+
+  theme_minimal() +
+  format_title +
+  format_legend_title
+```
+
+
+```{r}
+##Heat Maps
+airdata %>%
+  filter(AirlineCode == "UA") %>%
+  group_by(Month, Year) %>%
+summarise(Passengers = sum(PassengerCount)) %>%
+ggplot(aes(x = factor(Month, labels = month.abb), y = Year)) +
+  geom_tile(aes(fill=Passengers)) + 
+  scale_x_discrete(name = "Month") + scale_y_continuous(expand = c(0, 0),
+  name = "Year", breaks = seq(min(airdata$Year), max(airdata$Year), by = 1)) +
+  scale_fill_gradientn(colours = hcl.colors(20, "RdYlGn"), labels = comma) +
+  theme_minimal() +
+  ggtitle("United Airlines Passengers Count") +
+  format_title +
+  format_legend_title
+```
+
