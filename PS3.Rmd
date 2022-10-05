@@ -1,0 +1,57 @@
+---
+title: "Assignment 3"
+author: "Isha"
+date: "4/27/2022"
+output: pdf_document
+---
+b. Run a multinomial logit model with installation cost, operating cost, and no intercepts.
+```{r message=FALSE}
+library(mlogit)
+data("Heating", package = "mlogit")
+H <- dfidx(Heating, choice = "depvar", varying = c(3:12))
+reg1 <- mlogit(depvar ~ ic + oc | 0, H)
+summary(reg1)
+```
+Discuss the coefficients and their signs.
+
+The coefficients are negative as expected, meaning that as the cost of a system rises (and the costs of the other systems remain the same) the probability of that system being chosen falls.
+Their t-statistics are greater than 1.96, which is the critical level for 95% confidence level and hence, the coefficients significantly different from zero
+
+
+c. How closely do the average probabilities match the shares of customers choosing each alternative?
+```{r message=FALSE}
+apply(fitted(reg1, outcome = FALSE), 2, mean)
+```
+Not very well. 63.67% of the sample chose gc (as shown at the top of the summary) and yet the estimated model gives an average probability of only 51.695%. The other alternatives are also fairly poorly predicted. We will find how to fix this problem in one of the models below.
+
+d. Define the willingness to pay (WTP) as the ratio of the operating cost coefficient to the installation
+cost coefficient. This measure indicates the willingness to pay for a higher installation cost in order to
+reduce operating costs by one dollar. Calculate and discuss the estimated WTP for this model.
+
+```{r message=FALSE}
+wtp1 <- coef(reg1)["oc"]/coef(reg1)["ic"]
+wtp1
+```
+The model implies that the decision-maker is willing to pay $0.73 (ie., 73 cents) in higher installation cost in order to reduce annual operating costs by $1.
+
+A $1 reduction in annual operating costs recurs each year. It is unreasonable to think that the decision-maker is only willing to pay only 73 cents as a one-time payment in return for a $1/year stream of saving. This unreasonable implication is another reason (along with the inaccurate average probabilities) to believe this model is not so good.
+
+
+e. Add alternative-specific constants to the model (normalize the constant for hp to zero in this case).
+Compare the estimated probabilities to the observed shares for each alternative.
+
+```{r message=FALSE}
+reg2 <- mlogit(depvar ~ ic + oc, H, reflevel = 'hp')
+summary(reg2)
+
+apply(fitted(reg2, outcome = FALSE), 2, mean)
+```
+This time the probabilities  match exactly: alternative-specific constants in a logit model insure that the average probabilities equal the observed shares.
+
+f. What is the WTP now? Does it seem reasonable?
+
+```{r message=FALSE}
+wtp2 <- coef(reg2)["oc"] / coef(reg2)["ic"]
+wtp2
+```
+The decision-maker is willing to pay $4.56 for a $1 year stream of savings. This result is certainly more reasonable than the previous model.

@@ -1,0 +1,66 @@
+---
+title: "PS2_Econometrics"
+author: "Isha"
+date: "4/3/2022"
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r message=FALSE}
+library(systemfit, quietly=T)
+library(wooldridge, quietly=T)
+library(AER, quietly=T)
+
+data('mroz')
+oursample = subset(mroz, !is.na(wage))
+
+```
+2(a)
+IV Regression on Equation (i)
+```{r}
+eqn1 <- ivreg(hours ~ log(wage) + educ + age + kidslt6 + nwifeinc | age + kidslt6 + nwifeinc + exper + I(exper^2), data = oursample)
+summary(eqn1)
+```
+2(a)
+IV Regression on Equation (ii)
+```{r}
+eqn2 <- ivreg(log(wage) ~ hours + educ + exper + I(exper^2) | age + kidslt6 + nwifeinc + exper + I(exper^2), data = oursample)
+summary(eqn2)
+```
+2(b)
+After imposing exclusion restriction
+```{r}
+eqn1 = hours ~ log(wage) + educ + age + kidslt6 + nwifeinc
+eqn2 = log(wage) ~ hours + educ + exper + I(exper^2)
+eqn_system = list(eqn1, eqn2)
+```
+
+
+```{r}
+systemfit(formula = eqn_system, inst = ~ age + kidslt6 + nwifeinc + + exper + I(exper^2), data = oursample, method = "2SLS")
+```
+
+
+```{r}
+systemfit(formula = eqn_system, inst = ~ age + kidslt6 + nwifeinc + + exper + I(exper^2), data = oursample, method = "3SLS")
+```
+2(c)
+Analyze the results obtained in (a) and (b) and comment on your results, in particular the significance
+of the coefficients.  
+
+For equation 1:  
+2SLS and 3SLS produce different coefficients. All coefficients show impact on work hours  
+- Intercepts of 2SLS are higher than intercepts of 3SLS  
+- Coefficients for log(wage) in 2SLS is higher which means wage has more impact on hours in 2SLS  
+- Education has negative coefficient in both 2SLS and 3SLS. The effect in 3SLS is higher.  
+- Age is 2SLS has a stronger effect while it's negative. Age has positive effect in 3SLS  
+- Having kids in 2SLS has a very high positive impact while that in 3SLS is negative  
+- Non-wife income in both 2SLS and 3SLS have positive impact while the impact in 2SLS is higher  
+
+For equation 2:  
+Both 2SLS and 3SLS coefficients are the same however, 3SLS is more efficient.  
+- The intercepts are negative  
+- Hours worked has very small positive impact on log(wage)  
+- Education has small positive impact on log(wage)  
+- Similarly, experience has small positive impact on log(wage)  
+- The square of experience has small negative impact on log(wage)  
